@@ -7,7 +7,7 @@ Read and send email via IMAP/SMTP. Works with any standard IMAP/SMTP server (Gma
 ## Install
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/johrell/email-skill.git
 cd email-skill
 npm install
 bash setup.sh
@@ -128,8 +128,6 @@ SMTP_REJECT_UNAUTHORIZED=true
 SMTP_ALLOW_SEND=false
 ```
 
-For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833) rather than your account password.
 
-## License
 
-MIT
+
