@@ -2,7 +2,7 @@
 
 Read and send email via IMAP/SMTP. Works with any standard IMAP/SMTP server (Gmail, Outlook, Fastmail, ProtonMail Bridge, self-hosted, etc).
 
-**Capabilities:** Check inbox, fetch messages, search, download attachments, mark read/unread, move between folders, save drafts, send emails with attachments.
+**Capabilities:** Check inbox, fetch messages, search, download attachments, mark read/unread, set/remove flags, move between folders, save drafts, send emails with attachments.
 
 ## Install
 
@@ -70,6 +70,9 @@ node scripts/imap.js download 1234 --file report.pdf --dir ~/Downloads
 # Manage messages
 node scripts/imap.js mark-read 1234 1235
 node scripts/imap.js mark-unread 1234
+node scripts/imap.js add-flag 1234 --flag flagged
+node scripts/imap.js remove-flag 1234 --flag flagged
+node scripts/imap.js get-flags 1234
 node scripts/imap.js move 1234 --to Archive
 
 # Save a draft

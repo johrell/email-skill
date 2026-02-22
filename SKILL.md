@@ -54,6 +54,23 @@ node scripts/imap.js mark-read <uid> [uid2 uid3...]
 node scripts/imap.js mark-unread <uid> [uid2 uid3...]
 ```
 
+### add-flag / remove-flag
+
+```bash
+node scripts/imap.js add-flag <uid> [uid2 uid3...] --flag <name> [--mailbox INBOX]
+node scripts/imap.js remove-flag <uid> [uid2 uid3...] --flag <name> [--mailbox INBOX]
+```
+
+Options:
+- `--flag <name>`: Flag to add or remove (**required**). Accepts friendly names: `seen`, `flagged`, `answered`, `deleted`, `draft`. Custom/keyword flags (e.g., `$Junk`) are also supported.
+- `--mailbox <name>`: Mailbox (default: INBOX)
+
+### get-flags
+
+```bash
+node scripts/imap.js get-flags <uid> [uid2 uid3...] [--mailbox INBOX]
+```
+
 ### move
 
 ```bash

@@ -284,6 +284,21 @@ function parseRelativeTime(timeStr) {
   }
 }
 
+// Normalize user-friendly flag names to IMAP format
+function normalizeFlag(flag) {
+  const FLAG_MAP = {
+    'seen': '\\Seen',
+    'answered': '\\Answered',
+    'flagged': '\\Flagged',
+    'deleted': '\\Deleted',
+    'draft': '\\Draft',
+  };
+  const lower = flag.toLowerCase();
+  if (FLAG_MAP[lower]) return FLAG_MAP[lower];
+  if (flag.startsWith('\\')) return flag;
+  return flag;
+}
+
 // Search emails with criteria
 async function searchEmails(options) {
   const imap = await connect();
@@ -345,6 +360,79 @@ async function markAsUnread(uids, mailbox = DEFAULT_MAILBOX) {
       });
     });
     return { success: true, uids, action: 'marked as unread' };
+  } finally {
+    imap.end();
+  }
+}
+
+// Get flags for message(s) by UID
+async function getFlags(uids, mailbox = DEFAULT_MAILBOX) {
+  const imap = await connect();
+
+  try {
+    await openBox(imap, mailbox, true);
+    const results = await new Promise((resolve, reject) => {
+      const fetch = imap.fetch(uids, {});
+      const messages = [];
+
+      fetch.on('message', (msg) => {
+        msg.once('attributes', (attrs) => {
+          messages.push({ uid: attrs.uid, flags: attrs.flags });
+        });
+      });
+
+      fetch.once('error', (err) => {
+        reject(err);
+      });
+
+      fetch.once('end', () => {
+        resolve(messages);
+      });
+    });
+
+    if (results.length === 0) {
+      throw new Error(`No messages found for UID(s): ${uids}`);
+    }
+
+    return results;
+  } finally {
+    imap.end();
+  }
+}
+
+// Add flag to message(s)
+async function addFlag(uids, flag, mailbox = DEFAULT_MAILBOX) {
+  const imap = await connect();
+
+  try {
+    await openBox(imap, mailbox);
+    const imapFlag = normalizeFlag(flag);
+    await new Promise((resolve, reject) => {
+      imap.addFlags(uids, imapFlag, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    return { success: true, uids, flag: imapFlag, action: 'flag added' };
+  } finally {
+    imap.end();
+  }
+}
+
+// Remove flag from message(s)
+async function removeFlag(uids, flag, mailbox = DEFAULT_MAILBOX) {
+  const imap = await connect();
+
+  try {
+    await openBox(imap, mailbox);
+    const imapFlag = normalizeFlag(flag);
+    await new Promise((resolve, reject) => {
+      imap.delFlags(uids, imapFlag, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    return { success: true, uids, flag: imapFlag, action: 'flag removed' };
   } finally {
     imap.end();
   }
@@ -539,9 +627,36 @@ async function main() {
         result = await listMailboxes();
         break;
 
+      case 'add-flag':
+        if (positional.length === 0) {
+          throw new Error('UID(s) required: node imap.js add-flag <uid> [uid2...] --flag <name>');
+        }
+        if (!options.flag) {
+          throw new Error('Flag required: node imap.js add-flag <uid> --flag <name>');
+        }
+        result = await addFlag(positional, options.flag, options.mailbox);
+        break;
+
+      case 'remove-flag':
+        if (positional.length === 0) {
+          throw new Error('UID(s) required: node imap.js remove-flag <uid> [uid2...] --flag <name>');
+        }
+        if (!options.flag) {
+          throw new Error('Flag required: node imap.js remove-flag <uid> --flag <name>');
+        }
+        result = await removeFlag(positional, options.flag, options.mailbox);
+        break;
+
+      case 'get-flags':
+        if (positional.length === 0) {
+          throw new Error('UID(s) required: node imap.js get-flags <uid> [uid2...]');
+        }
+        result = await getFlags(positional, options.mailbox);
+        break;
+
       default:
         console.error('Unknown command:', command);
-        console.error('Available commands: check, fetch, download, search, mark-read, mark-unread, move, draft, list-mailboxes');
+        console.error('Available commands: check, fetch, download, search, mark-read, mark-unread, move, draft, list-mailboxes, add-flag, remove-flag, get-flags');
         process.exit(1);
     }
 
